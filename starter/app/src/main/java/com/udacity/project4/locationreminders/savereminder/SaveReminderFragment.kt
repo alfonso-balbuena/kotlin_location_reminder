@@ -1,7 +1,9 @@
 package com.udacity.project4.locationreminders.savereminder
 
 import android.Manifest
+import android.app.AlertDialog
 import android.app.PendingIntent
+import android.content.DialogInterface
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
@@ -12,11 +14,11 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.annotation.RequiresApi
 import androidx.databinding.DataBindingUtil
-import androidx.lifecycle.Observer
 import com.google.android.gms.location.Geofence
 import com.google.android.gms.location.GeofencingClient
 import com.google.android.gms.location.GeofencingRequest
 import com.google.android.gms.location.LocationServices
+import com.google.android.material.snackbar.Snackbar
 import com.udacity.project4.R
 import com.udacity.project4.base.BaseFragment
 import com.udacity.project4.base.NavigationCommand
@@ -31,6 +33,7 @@ class SaveReminderFragment : BaseFragment() {
     override val _viewModel: SaveReminderViewModel by inject()
     private lateinit var binding: FragmentSaveReminderBinding
     private lateinit var geofencingClient : GeofencingClient
+    private val CODE_RESULT_PERMISSION = 1
 
     private val geofencePendingIntent : PendingIntent by lazy {
         val intent = Intent(context,GeofenceBroadcastReceiver::class.java)
@@ -47,15 +50,55 @@ class SaveReminderFragment : BaseFragment() {
 
         setDisplayHomeAsUpEnabled(true)
         binding.viewModel = _viewModel
-        _viewModel.selectedPOI.observe(viewLifecycleOwner, Observer {
-            Log.d("SaveReminderFragment","POI selected $it")
-
-        })
         context?.let {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                getPermissionFineLocation()
+            }
             geofencingClient = LocationServices.getGeofencingClient(it)
         }
-
         return binding.root
+    }
+
+    @RequiresApi(Build.VERSION_CODES.M)
+    private fun getPermissionFineLocation() {
+        if(context?.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),CODE_RESULT_PERMISSION)
+        }
+        getBackgroundLocationPermission()
+    }
+
+    @RequiresApi(Build.VERSION_CODES.M)
+    private fun getBackgroundLocationPermission() {
+        if(context?.checkSelfPermission(Manifest.permission.ACCESS_BACKGROUND_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                if(shouldShowRequestPermissionRationale(Manifest.permission.ACCESS_BACKGROUND_LOCATION)) {
+                    val alertDialog = AlertDialog.Builder(context).setMessage(getString(R.string.location_required_error))
+                        .setTitle(getString(R.string.reminder_location)).setPositiveButton("Ok", DialogInterface.OnClickListener{
+                                dialog, _ ->
+                            run {
+                                requestPermissions(arrayOf(Manifest.permission.ACCESS_BACKGROUND_LOCATION), CODE_RESULT_PERMISSION)
+                                dialog.cancel()
+                            }
+                        })
+                        .setNegativeButton("Cancel") { dialogInterface, _ ->
+                            dialogInterface.cancel()
+                        }.create()
+                    alertDialog.show()
+                }
+            }
+        }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.M)
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        if(requestCode == CODE_RESULT_PERMISSION) {
+            if(permissions.isEmpty() || grantResults.any { result -> result == PackageManager.PERMISSION_DENIED }) {
+                val alertDialog = AlertDialog.Builder(context).setMessage(getString(R.string.permission_denied_explanation))
+                    .setTitle(getString(R.string.location_required_error)).setNeutralButton("Ok", DialogInterface.OnClickListener{
+                            dialog, _ -> dialog.cancel() }).create()
+                alertDialog.show()
+            }
+        }
     }
 
     @RequiresApi(Build.VERSION_CODES.M)
@@ -72,16 +115,15 @@ class SaveReminderFragment : BaseFragment() {
             val title = _viewModel.reminderTitle.value
             val description = _viewModel.reminderDescription.value
             val location = _viewModel.reminderSelectedLocationStr.value
-            val latitude = _viewModel.latitude.value
-            val longitude = _viewModel.longitude.value
+            val latitude = _viewModel.selectedPOI.value?.latLng?.latitude
+            val longitude = _viewModel.selectedPOI.value?.latLng?.longitude
             val reminderData = ReminderDataItem(title,description = description,location = location,latitude = latitude,longitude = longitude)
-            addGeofence(reminderData.id,latitude!!,longitude!!)
-            _viewModel.validateAndSaveReminder(reminderData)
+            addGeofence(reminderData.id,latitude!!,longitude!!,reminderData)
         }
     }
 
     @RequiresApi(Build.VERSION_CODES.M)
-    private fun addGeofence(id : String?, latitude : Double, longitude : Double) {
+    private fun addGeofence(id : String?, latitude : Double, longitude : Double,reminderData : ReminderDataItem) {
         val geofence = Geofence.Builder().
                 setRequestId(id).
                 setCircularRegion(latitude,longitude, 100f).
@@ -92,8 +134,18 @@ class SaveReminderFragment : BaseFragment() {
                                 setInitialTrigger(GeofencingRequest.INITIAL_TRIGGER_ENTER).
                                 addGeofence(geofence).
                                 build()
+
+
         if(context?.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-            geofencingClient.addGeofences(geofencingRequest,geofencePendingIntent)
+            geofencingClient.addGeofences(geofencingRequest,geofencePendingIntent).run {
+                addOnSuccessListener {
+                    _viewModel.validateAndSaveReminder(reminderData)
+                }
+                addOnFailureListener {
+                    val snackbar = Snackbar.make(binding.root,getString(R.string.geofences_not_added),Snackbar.LENGTH_LONG)
+                    snackbar.show()
+                }
+            }
         }
     }
 

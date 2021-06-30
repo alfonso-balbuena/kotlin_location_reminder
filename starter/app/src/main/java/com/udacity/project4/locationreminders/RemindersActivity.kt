@@ -23,11 +23,6 @@ class RemindersActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_reminders)
-        if(FirebaseAuth.getInstance().currentUser == null) {
-            val intent = Intent(this,AuthenticationActivity::class.java)
-            startActivity(intent)
-            Log.d("----------","No user")
-        }
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {

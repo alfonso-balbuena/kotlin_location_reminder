@@ -12,8 +12,10 @@ import androidx.test.espresso.matcher.ViewMatchers.withId
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.MediumTest
 import com.udacity.project4.R
+import com.udacity.project4.locationreminders.data.ReminderDataSource
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import org.junit.Assert.*
+import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mockito.mock
@@ -28,4 +30,10 @@ class ReminderListFragmentTest {
 //    TODO: test the navigation of the fragments.
 //    TODO: test the displayed data on the UI.
 //    TODO: add testing for the error messages.
+    private lateinit var repository : ReminderDataSource
+
+    @Before
+    fun initRepository() {
+        
+    }
 }

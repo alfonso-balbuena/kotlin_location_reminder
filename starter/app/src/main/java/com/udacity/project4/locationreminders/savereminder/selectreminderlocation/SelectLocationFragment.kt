@@ -5,6 +5,7 @@ import android.Manifest
 import android.app.AlertDialog
 import android.content.DialogInterface
 import android.content.pm.PackageManager
+import android.hardware.camera2.CameraAccessException
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
@@ -14,6 +15,9 @@ import androidx.databinding.DataBindingUtil
 import androidx.navigation.NavController
 import androidx.navigation.fragment.NavHostFragment
 import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationRequest
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
@@ -35,14 +39,14 @@ class SelectLocationFragment : BaseFragment() {
     private var _map : GoogleMap? = null
     private var _marker : Marker? = null
     private var name : String = ""
-
+    private var locationProviderClient : FusedLocationProviderClient? = null
 
 
     @RequiresApi(Build.VERSION_CODES.M)
     private val callback = OnMapReadyCallback {
         _map = it
-        _map?.setMinZoomPreference(15.0f);
-        _map?.setMaxZoomPreference(18.0f);
+        _map?.setMinZoomPreference(15.0f)
+        _map?.setMaxZoomPreference(18.0f)
         _map?.setOnPoiClickListener { poi -> addMarker(poi.name,poi.latLng) }
         _map?.setOnMapLongClickListener { place -> addMarker("Custom place",place) }
         _map?.setMapStyle(MapStyleOptions.loadRawResourceStyle(context,R.raw.map_style))
@@ -75,6 +79,12 @@ class SelectLocationFragment : BaseFragment() {
         return binding.root
     }
 
+    private fun initLocationRequest() {
+        context?.let {
+            locationProviderClient = LocationServices.getFusedLocationProviderClient(it)
+        }
+    }
+
     @RequiresApi(Build.VERSION_CODES.M)
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -84,9 +94,7 @@ class SelectLocationFragment : BaseFragment() {
 
     @RequiresApi(Build.VERSION_CODES.M)
     private fun getPermission() {
-        if(context?.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-            initMap()
-        } else {
+        if(context?.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),CODE_RESULT_PERMISSION)
         }
     }
@@ -97,8 +105,8 @@ class SelectLocationFragment : BaseFragment() {
             if(permissions.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 initMap()
             } else {
-                val alertDialog = AlertDialog.Builder(context).setMessage("Test message")
-                    .setTitle("Test title").setNeutralButton("Ok", DialogInterface.OnClickListener{
+                val alertDialog = AlertDialog.Builder(context).setMessage(getString(R.string.permission_denied_explanation))
+                    .setTitle(getString(R.string.location_required_error)).setNeutralButton("Ok", DialogInterface.OnClickListener{
                             dialog, _ -> dialog.cancel() }).create()
                 alertDialog.show()
             }
@@ -109,7 +117,14 @@ class SelectLocationFragment : BaseFragment() {
     private fun initMap() {
         if(context?.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             _map?.isMyLocationEnabled = true
-
+            initLocationRequest()
+            locationProviderClient?.let {
+                it.lastLocation.addOnSuccessListener { location ->
+                    _map?.let { _mapLet ->
+                        _mapLet.moveCamera(CameraUpdateFactory.newLatLngZoom(LatLng(location.latitude,location.longitude),18.0f))
+                    }
+                }
+            }
         }
     }
 
