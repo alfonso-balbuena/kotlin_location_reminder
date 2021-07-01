@@ -100,4 +100,13 @@ class RemindersLocalRepositoryTest {
         }
     }
 
+    @Test
+    fun getReminders_noFoundElement_Error() = mainCoroutineRule.runBlockingTest {
+        remindersLocalRepository.deleteAllReminders()
+        when(val reminder = remindersLocalRepository.getReminder("1")) {
+            is Result.Success<*> -> assertEquals(false,true)
+            is Result.Error -> assertEquals(true,true)
+        }
+    }
+
 }

@@ -25,9 +25,6 @@ class RemindersListViewModel(
         showLoading.value = true
         viewModelScope.launch {
             //interacting with the dataSource has to be through a coroutine
-            Log.d("LOADREMINDERS","------------------------------------------------------")
-            Log.d("LOADREMINDERS","$dataSource")
-            Log.d("LOADREMINDERS","---------------------------------------")
             val result = dataSource.getReminders()
             showLoading.postValue(false)
             when (result) {

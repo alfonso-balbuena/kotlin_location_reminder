@@ -43,6 +43,7 @@ class AuthenticationActivity : AppCompatActivity() {
             val response = IdpResponse.fromResultIntent(data)
             if(resultCode == Activity.RESULT_OK) {
                 val intent = Intent(this,RemindersActivity::class.java)
+                finish()
                 startActivity(intent)
             }
         }

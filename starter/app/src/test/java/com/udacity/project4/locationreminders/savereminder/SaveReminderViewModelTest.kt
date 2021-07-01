@@ -9,6 +9,8 @@ import com.udacity.project4.locationreminders.data.ReminderDataSource
 import com.udacity.project4.locationreminders.data.dto.ReminderDTO
 import com.udacity.project4.locationreminders.data.dto.Result
 import com.udacity.project4.locationreminders.reminderslist.ReminderDataItem
+import com.udacity.project4.locationreminders.util.MainCoroutineRule
+import kotlinx.coroutines.Dispatchers
 
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runBlockingTest
@@ -24,9 +26,12 @@ class SaveReminderViewModelTest {
     @get:Rule
     var instantExecutorRul = InstantTaskExecutorRule()
 
+    @get:Rule
+    var mainCoroutineRule = MainCoroutineRule()
+
     @Before
     fun initViewModel() {
-        fakeDataSource = FakeDataSource()
+        fakeDataSource = FakeDataSource(Dispatchers.Main)
         saveReminderViewModel = SaveReminderViewModel(MyApp(),fakeDataSource)
 
     }

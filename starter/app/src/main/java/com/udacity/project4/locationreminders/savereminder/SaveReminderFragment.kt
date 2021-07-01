@@ -8,16 +8,14 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.annotation.RequiresApi
 import androidx.databinding.DataBindingUtil
-import com.google.android.gms.location.Geofence
-import com.google.android.gms.location.GeofencingClient
-import com.google.android.gms.location.GeofencingRequest
-import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.*
 import com.google.android.material.snackbar.Snackbar
 import com.udacity.project4.R
 import com.udacity.project4.base.BaseFragment
@@ -65,6 +63,22 @@ class SaveReminderFragment : BaseFragment() {
             requestPermissions(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),CODE_RESULT_PERMISSION)
         }
         getBackgroundLocationPermission()
+    }
+
+    @RequiresApi(Build.VERSION_CODES.M)
+    private fun checkLocationEnabled(id : String?, latitude : Double, longitude : Double, reminderData : ReminderDataItem) {
+        val locationRequest = LocationRequest.create().apply {
+            priority = LocationRequest.PRIORITY_LOW_POWER
+        }
+        val builder = LocationSettingsRequest.Builder().addLocationRequest(locationRequest)
+        val settingsClient = LocationServices.getSettingsClient(activity!!)
+        val locationSettingsResponseTask = settingsClient.checkLocationSettings(builder.build())
+        locationSettingsResponseTask.addOnSuccessListener {
+            addGeofenceAndSave(id,latitude,longitude,reminderData)
+        }
+        locationSettingsResponseTask.addOnFailureListener {
+            Snackbar.make(binding.root,R.string.location_required_error,Snackbar.LENGTH_LONG).show()
+        }
     }
 
     @RequiresApi(Build.VERSION_CODES.M)
@@ -123,17 +137,17 @@ class SaveReminderFragment : BaseFragment() {
     }
 
     @RequiresApi(Build.VERSION_CODES.M)
-    private fun addGeofence(id : String?, latitude : Double, longitude : Double,reminderData : ReminderDataItem) {
+    private fun addGeofenceAndSave(id : String?, latitude : Double, longitude : Double, reminderData : ReminderDataItem) {
         val geofence = Geofence.Builder().
-                setRequestId(id).
-                setCircularRegion(latitude,longitude, 100f).
-                setExpirationDuration(1000 * 60 * 60).
-                setTransitionTypes(Geofence.GEOFENCE_TRANSITION_ENTER).
-                build()
+        setRequestId(id).
+        setCircularRegion(latitude,longitude, 100f).
+        setExpirationDuration(1000 * 60 * 60).
+        setTransitionTypes(Geofence.GEOFENCE_TRANSITION_ENTER).
+        build()
         val geofencingRequest = GeofencingRequest.Builder().
-                                setInitialTrigger(GeofencingRequest.INITIAL_TRIGGER_ENTER).
-                                addGeofence(geofence).
-                                build()
+        setInitialTrigger(GeofencingRequest.INITIAL_TRIGGER_ENTER).
+        addGeofence(geofence).
+        build()
 
 
         if(context?.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
@@ -146,6 +160,16 @@ class SaveReminderFragment : BaseFragment() {
                     snackbar.show()
                 }
             }
+        }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.M)
+    private fun addGeofence(id : String?, latitude : Double, longitude : Double,reminderData : ReminderDataItem) {
+        if(context?.checkSelfPermission(Manifest.permission.ACCESS_BACKGROUND_LOCATION) != PackageManager.PERMISSION_GRANTED ||
+            context?.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            getPermissionFineLocation()
+        } else {
+            checkLocationEnabled(id, latitude, longitude,reminderData)
         }
     }
 

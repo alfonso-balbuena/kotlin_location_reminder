@@ -76,6 +76,7 @@ class ReminderListFragment : BaseFragment() {
             R.id.logout -> {
                 FirebaseAuth.getInstance().signOut()
                 val intent = Intent(context, AuthenticationActivity::class.java)
+                activity?.finish()
                 startActivity(intent)
             }
         }
