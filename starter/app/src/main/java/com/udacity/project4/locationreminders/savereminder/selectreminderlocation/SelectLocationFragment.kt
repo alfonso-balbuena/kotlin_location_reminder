@@ -121,7 +121,10 @@ class SelectLocationFragment : BaseFragment() {
             locationProviderClient?.let {
                 it.lastLocation.addOnSuccessListener { location ->
                     _map?.let { _mapLet ->
-                        _mapLet.moveCamera(CameraUpdateFactory.newLatLngZoom(LatLng(location.latitude,location.longitude),18.0f))
+                        location?.let { loc ->
+                            _mapLet.moveCamera(CameraUpdateFactory.newLatLngZoom(LatLng(loc.latitude,loc.longitude),18.0f))
+                        }
+
                     }
                 }
             }

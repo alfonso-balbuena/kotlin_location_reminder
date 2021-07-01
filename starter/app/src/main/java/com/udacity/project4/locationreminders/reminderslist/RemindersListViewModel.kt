@@ -1,6 +1,7 @@
 package com.udacity.project4.locationreminders.reminderslist
 
 import android.app.Application
+import android.util.Log
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
 import com.udacity.project4.base.BaseViewModel
@@ -24,6 +25,9 @@ class RemindersListViewModel(
         showLoading.value = true
         viewModelScope.launch {
             //interacting with the dataSource has to be through a coroutine
+            Log.d("LOADREMINDERS","------------------------------------------------------")
+            Log.d("LOADREMINDERS","$dataSource")
+            Log.d("LOADREMINDERS","---------------------------------------")
             val result = dataSource.getReminders()
             showLoading.postValue(false)
             when (result) {

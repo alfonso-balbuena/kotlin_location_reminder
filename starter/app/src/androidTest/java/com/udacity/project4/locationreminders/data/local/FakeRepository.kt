@@ -6,6 +6,7 @@ import com.udacity.project4.locationreminders.data.dto.Result
 
 class FakeRepository : ReminderDataSource {
     private val list = mutableListOf<ReminderDTO>()
+    var flagSuccess = true
 
     init {
         list.add(ReminderDTO("Test1","Description 1","Location 1",99.9,10.9,"1"))
@@ -13,7 +14,8 @@ class FakeRepository : ReminderDataSource {
     }
 
     override suspend fun getReminders(): Result<List<ReminderDTO>> {
-        return Result.Success(list as List<ReminderDTO>)
+        return if(flagSuccess) Result.Success(list as List<ReminderDTO>) else
+            Result.Error("Error getting reminders")
     }
 
     override suspend fun saveReminder(reminder: ReminderDTO) {
@@ -27,5 +29,9 @@ class FakeRepository : ReminderDataSource {
 
     override suspend fun deleteAllReminders() {
         list.clear()
+    }
+
+    fun getList() : List<ReminderDTO> {
+        return list;
     }
 }
