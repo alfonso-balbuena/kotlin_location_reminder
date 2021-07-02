@@ -8,6 +8,7 @@ import androidx.test.filters.MediumTest
 import androidx.test.platform.app.InstrumentationRegistry
 import com.udacity.project4.locationreminders.data.dto.ReminderDTO
 import com.udacity.project4.locationreminders.data.dto.Result
+import com.udacity.project4.locationreminders.reminderslist.ReminderDataItem
 import com.udacity.project4.util.MainCoroutineRule
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -58,26 +59,17 @@ class RemindersLocalRepositoryTest {
     fun saveReminder_reminderDTO_obj() = mainCoroutineRule.runBlockingTest {
         val reminderDTO = getReminderDTO("1")
         remindersLocalRepository.saveReminder(reminderDTO)
-        when(val loadedReminder = remindersLocalRepository.getReminder(reminderDTO.id)) {
-            is Result.Success<*> -> {
-                val data = loadedReminder.data as ReminderDTO
-                assertEquals(reminderDTO,data)
-            }
-            is Result.Error -> assertEquals(true,false)
-        }
-
+        val loadedReminder = remindersLocalRepository.getReminder(reminderDTO.id) as? Result.Success<*>
+        assertEquals(true,loadedReminder != null)
+        val data = loadedReminder!!.data as ReminderDTO
+        assertEquals(reminderDTO,data)
     }
 
     @Test
     fun getReminders_twoElements_noEmptyList() = mainCoroutineRule.runBlockingTest {
         insertTwoElements()
-        when(val list = remindersLocalRepository.getReminders()) {
-            is Result.Success<*> -> {
-                val dataList = list.data as List<*>
-                assertEquals(2,dataList.size)
-            }
-            is Result.Error -> assertEquals(true,false)
-        }
+        val list = remindersLocalRepository.getReminders() as? Result.Success<*>
+        assertEquals(true, list != null)
     }
 
     private suspend fun insertTwoElements() {
@@ -91,22 +83,17 @@ class RemindersLocalRepositoryTest {
     fun cleanData_insertTwoElements_emptyList() = mainCoroutineRule.runBlockingTest {
         insertTwoElements()
         remindersLocalRepository.deleteAllReminders()
-        when(val list = remindersLocalRepository.getReminders()) {
-            is Result.Success<*> -> {
-                val dataList = list.data as List<*>
-                assertEquals(true,dataList.isEmpty())
-            }
-            is Result.Error -> assertEquals(true,false)
-        }
+        val list = remindersLocalRepository.getReminders() as? Result.Success<*>
+        assertEquals(true, list != null)
+        val dataList = ArrayList<ReminderDataItem>()
+        assertEquals(true,dataList.isEmpty())
     }
 
     @Test
     fun getReminders_noFoundElement_Error() = mainCoroutineRule.runBlockingTest {
         remindersLocalRepository.deleteAllReminders()
-        when(val reminder = remindersLocalRepository.getReminder("1")) {
-            is Result.Success<*> -> assertEquals(false,true)
-            is Result.Error -> assertEquals(true,true)
-        }
+        val reminder = remindersLocalRepository.getReminder("1") as? Result.Error
+        assertEquals(true,reminder != null)
     }
 
 }

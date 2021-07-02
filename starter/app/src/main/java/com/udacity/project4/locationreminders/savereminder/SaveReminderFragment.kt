@@ -59,10 +59,18 @@ class SaveReminderFragment : BaseFragment() {
 
     @RequiresApi(Build.VERSION_CODES.M)
     private fun getPermissionFineLocation() {
+        val permissions = mutableListOf<String>()
         if(context?.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            requestPermissions(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),CODE_RESULT_PERMISSION)
+            permissions.add(Manifest.permission.ACCESS_FINE_LOCATION)
         }
-        getBackgroundLocationPermission()
+        if(context?.checkSelfPermission(Manifest.permission.ACCESS_BACKGROUND_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                permissions.add(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
+            }
+        }
+        if(!permissions.isEmpty()) {
+            requestPermissions(permissions.toTypedArray(),CODE_RESULT_PERMISSION)
+        }
     }
 
     @RequiresApi(Build.VERSION_CODES.M)
@@ -78,28 +86,6 @@ class SaveReminderFragment : BaseFragment() {
         }
         locationSettingsResponseTask.addOnFailureListener {
             Snackbar.make(binding.root,R.string.location_required_error,Snackbar.LENGTH_LONG).show()
-        }
-    }
-
-    @RequiresApi(Build.VERSION_CODES.M)
-    private fun getBackgroundLocationPermission() {
-        if(context?.checkSelfPermission(Manifest.permission.ACCESS_BACKGROUND_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                if(shouldShowRequestPermissionRationale(Manifest.permission.ACCESS_BACKGROUND_LOCATION)) {
-                    val alertDialog = AlertDialog.Builder(context).setMessage(getString(R.string.location_required_error))
-                        .setTitle(getString(R.string.reminder_location)).setPositiveButton("Ok", DialogInterface.OnClickListener{
-                                dialog, _ ->
-                            run {
-                                requestPermissions(arrayOf(Manifest.permission.ACCESS_BACKGROUND_LOCATION), CODE_RESULT_PERMISSION)
-                                dialog.cancel()
-                            }
-                        })
-                        .setNegativeButton("Cancel") { dialogInterface, _ ->
-                            dialogInterface.cancel()
-                        }.create()
-                    alertDialog.show()
-                }
-            }
         }
     }
 
@@ -132,7 +118,9 @@ class SaveReminderFragment : BaseFragment() {
             val latitude = _viewModel.selectedPOI.value?.latLng?.latitude
             val longitude = _viewModel.selectedPOI.value?.latLng?.longitude
             val reminderData = ReminderDataItem(title,description = description,location = location,latitude = latitude,longitude = longitude)
-            addGeofence(reminderData.id,latitude!!,longitude!!,reminderData)
+            if(_viewModel.validateEnteredData(reminderData)) {
+                addGeofence(reminderData.id,latitude!!,longitude!!,reminderData)
+            }
         }
     }
 
@@ -156,6 +144,7 @@ class SaveReminderFragment : BaseFragment() {
                     _viewModel.validateAndSaveReminder(reminderData)
                 }
                 addOnFailureListener {
+                    Log.d("AddGeofencing","${it.message}")
                     val snackbar = Snackbar.make(binding.root,getString(R.string.geofences_not_added),Snackbar.LENGTH_LONG)
                     snackbar.show()
                 }
