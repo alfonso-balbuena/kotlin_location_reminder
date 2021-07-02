@@ -2,6 +2,13 @@
 
 A Todo list app with location reminders that remind the user to do something when he reaches a specific location. The app will require the user to create an account and login to set and access reminders.
 
+## Note
+
+Execution for ReminderActivityTest -- saveReminder_fromReminderList in Nexus 5x Api 29
+
+<img src="Nexus5x 29.PNG" width="800"/>
+
+
 ## Getting Started
 
 1. Clone the project to your local machine.
